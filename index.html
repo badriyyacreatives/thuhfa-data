@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thuhfa+</title>
+    <title>Badriyya Thuhfa</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#188896">
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -11,8 +13,8 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#3B82F6',
-                        secondary: '#10B981',
+                        primary: '#188896',
+                        secondary: '#082C30',
                         danger: '#EF4444',
                         warning: '#F59E0B',
                     }
@@ -22,24 +24,11 @@
     </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-left: 8px;
-        }
-        .status-available {
-            background-color: #10B981;
-        }
-        .status-missing {
-            background-color: #EF4444;
-        }
         .mobile-app-shadow {
             box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
         }
         .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #188896 0%, #082C30 100%);
         }
         .card-shadow {
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
@@ -69,6 +58,47 @@
         .modal-overlay {
             backdrop-filter: blur(4px);
         }
+        .app-icon-btn {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .delete-modal, .confirm-modal, .input-modal {
+            animation: modalFadeIn 0.3s ease;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .tick-animation {
+            animation: tickBounce 1s ease;
+        }
+        @keyframes tickBounce {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .dropdown-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: nowrap;
+        }
+        .dropdown-col {
+            flex: 1;
+            min-width: 0;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -78,21 +108,13 @@
         <div class="gradient-bg text-white p-6 rounded-b-3xl">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                        <i class="fas fa-calendar-alt text-lg"></i>
-                    </div>
+                    <button id="calendar-overview-btn" class="app-icon-btn w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-colors">
+                        <i class="fas fa-calendar-alt text-xl"></i>
+                    </button>
                     <div>
-                        <h1 class="text-xl font-bold">Poster Manager</h1>
+                        <h1 class="text-xl font-bold">Badriyya Thuhfa</h1>
                         <p class="text-white/80 text-sm">Hijri Calendar Data</p>
                     </div>
-                </div>
-                <div class="flex space-x-2">
-                    <button id="calendar-overview-btn" class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                        <i class="fas fa-calendar text-sm"></i>
-                    </button>
-                    <button id="info-btn" class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                        <i class="fas fa-info text-sm"></i>
-                    </button>
                 </div>
             </div>
             
@@ -111,61 +133,59 @@
 
         <!-- Form Section -->
         <div class="p-6 space-y-6">
-            <!-- Month Selection -->
+            <!-- Month and Day Selection - Same Line -->
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-gray-700 flex items-center">
-                    <i class="fas fa-moon mr-2 text-primary"></i>
-                    Hijri Month
+                    <i class="fas fa-calendar mr-2" style="color: #188896;"></i>
+                    Date Selection
                 </label>
-                <div class="relative">
-                    <select id="hijri-month" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 font-medium focus:border-primary focus:outline-none transition-colors appearance-none">
-                        <option value="">Select Month</option>
-                    </select>
-                    <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                <div class="dropdown-row">
+                    <div class="dropdown-col">
+                        <div class="relative">
+                            <select id="hijri-month" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 font-medium transition-colors appearance-none" style="focus:border-color: #188896;">
+                                <option value="">Select Month</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="dropdown-col">
+                        <div class="relative">
+                            <select id="hijri-day" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 font-medium transition-colors appearance-none" style="focus:border-color: #188896;">
+                                <option value="">Select Day</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-sm"></i>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Day Selection -->
-            <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-700 flex items-center">
-                    <i class="fas fa-calendar-day mr-2 text-primary"></i>
-                    Hijri Day
-                </label>
-                <div class="relative">
-                    <select id="hijri-day" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 font-medium focus:border-primary focus:outline-none transition-colors appearance-none">
-                        <option value="">Select Day</option>
-                    </select>
-                    <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-                </div>
-            </div>
-
-            <!-- Data Status Indicator -->
-            <div id="data-status" class="hidden p-4 rounded-2xl text-center font-medium text-sm">
-                <i class="fas fa-info-circle mr-2"></i>
-                <span id="status-text"></span>
             </div>
 
             <!-- Title 1 Input -->
             <div class="space-y-2">
-                <label class="block text-sm font-semibold text-gray-700 flex items-center">
-                    <i class="fas fa-heading mr-2 text-primary"></i>
-                    Title 1 Content
-                </label>
-                <textarea id="title1-content" rows="4" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 resize-none focus:border-primary focus:outline-none transition-colors" placeholder="Enter title 1 content..."></textarea>
+                <div class="flex items-center justify-between">
+                    <label class="block text-sm font-semibold text-gray-700 flex items-center">
+                        <i class="fas fa-heading mr-2" style="color: #188896;"></i>
+                        Title 1 Content
+                    </label>
+                    <button id="input-options-btn" class="text-sm px-3 py-1 rounded-full border-2 border-gray-200 text-gray-600 hover:border-primary hover:text-primary transition-colors">
+                        <i class="fas fa-expand mr-1"></i>
+                        Options
+                    </button>
+                </div>
+                <textarea id="title1-content" rows="4" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 resize-none transition-colors" style="focus:border-color: #188896;" placeholder="Enter title 1 content..."></textarea>
             </div>
 
             <!-- Title 2 Input -->
             <div class="space-y-2">
                 <label class="block text-sm font-semibold text-gray-700 flex items-center">
-                    <i class="fas fa-heading mr-2 text-primary"></i>
+                    <i class="fas fa-heading mr-2" style="color: #188896;"></i>
                     Title 2 Content
                 </label>
-                <textarea id="title2-content" rows="4" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 resize-none focus:border-primary focus:outline-none transition-colors" placeholder="Enter title 2 content..."></textarea>
+                <textarea id="title2-content" rows="4" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 resize-none transition-colors" style="focus:border-color: #188896;" placeholder="Enter title 2 content..."></textarea>
             </div>
 
             <!-- Action Buttons -->
             <div class="space-y-3 pt-4">
-                <button id="submit-btn" type="button" class="w-full bg-primary text-white p-4 rounded-2xl font-semibold text-lg flex items-center justify-center space-x-2 shadow-lg hover:bg-blue-600 transition-colors">
+                <button id="submit-btn" type="button" class="w-full text-white p-4 rounded-2xl font-semibold text-lg flex items-center justify-center space-x-2 shadow-lg transition-colors" style="background: #188896;">
                     <i class="fas fa-plus"></i>
                     <span>Add Entry</span>
                 </button>
@@ -193,8 +213,159 @@
         <!-- Loading Overlay -->
         <div id="loading-overlay" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div class="bg-white p-6 rounded-3xl shadow-xl flex items-center space-x-4">
-                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2" style="border-color: #188896;"></div>
                 <span class="text-gray-700 font-medium">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Tick Animation -->
+    <div id="success-animation" class="hidden success-overlay">
+        <div class="bg-white rounded-full p-8 shadow-2xl">
+            <i class="fas fa-check text-6xl text-green-500 tick-animation"></i>
+        </div>
+    </div>
+
+    <!-- Update Confirmation Modal -->
+    <div id="update-confirm-modal" class="hidden fixed inset-0 bg-black/50 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm confirm-modal">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-edit text-2xl text-yellow-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Update Entry</h3>
+                <p class="text-gray-600 mb-6">Are you sure you want to update this entry?</p>
+                <div class="flex space-x-3">
+                    <button id="confirm-update" class="flex-1 bg-yellow-500 text-white p-3 rounded-2xl font-semibold hover:bg-yellow-600 transition-colors">
+                        Update
+                    </button>
+                    <button id="cancel-update" class="flex-1 bg-gray-200 text-gray-800 p-3 rounded-2xl font-semibold hover:bg-gray-300 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="hidden fixed inset-0 bg-black/50 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm delete-modal">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-trash text-2xl text-red-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Delete Entry</h3>
+                <p class="text-gray-600 mb-6">Are you sure you want to delete this entry? This action cannot be undone.</p>
+                <div class="flex space-x-3">
+                    <button id="confirm-delete" class="flex-1 bg-red-500 text-white p-3 rounded-2xl font-semibold hover:bg-red-600 transition-colors">
+                        Delete
+                    </button>
+                    <button id="cancel-delete" class="flex-1 bg-gray-200 text-gray-800 p-3 rounded-2xl font-semibold hover:bg-gray-300 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input Options Modal -->
+    <div id="input-modal" class="hidden fixed inset-0 bg-black/50 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm input-modal">
+            <div class="p-6 text-center">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Input Options</h3>
+                <div class="space-y-3">
+                    <button id="fullscreen-btn" class="w-full bg-primary text-white p-3 rounded-2xl font-semibold flex items-center justify-center space-x-2">
+                        <i class="fas fa-expand"></i>
+                        <span>Full Screen Mode</span>
+                    </button>
+                    <button id="split-view-btn" class="w-full bg-secondary text-white p-3 rounded-2xl font-semibold flex items-center justify-center space-x-2">
+                        <i class="fas fa-columns"></i>
+                        <span>Split View Mode</span>
+                    </button>
+                    <button id="close-input-options" class="w-full bg-gray-200 text-gray-800 p-3 rounded-2xl font-semibold">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Screen Input Modal -->
+    <div id="fullscreen-modal" class="hidden fixed inset-0 bg-white z-50">
+        <div class="h-full flex flex-col">
+            <div class="gradient-bg text-white p-4 flex items-center justify-between">
+                <h2 class="text-lg font-bold">Full Screen Editor</h2>
+                <button id="close-fullscreen" class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="flex-1 p-4 space-y-4 overflow-y-auto">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Title 1 Content</label>
+                    <textarea id="fullscreen-title1" class="w-full h-48 p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 resize-none" style="focus:border-color: #188896;"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Title 2 Content</label>
+                    <textarea id="fullscreen-title2" class="w-full h-48 p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 resize-none" style="focus:border-color: #188896;"></textarea>
+                </div>
+            </div>
+            <div class="p-4 bg-gray-50 space-y-3">
+                <div id="fullscreen-edit-actions" class="hidden space-y-3">
+                    <button id="fullscreen-update" class="w-full bg-warning text-white p-3 rounded-2xl font-semibold">
+                        Update Entry
+                    </button>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="fullscreen-cancel" class="bg-gray-500 text-white p-3 rounded-2xl font-semibold">
+                            Cancel
+                        </button>
+                        <button id="fullscreen-save" class="bg-primary text-white p-3 rounded-2xl font-semibold">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+                <button id="fullscreen-add" class="w-full bg-primary text-white p-3 rounded-2xl font-semibold">
+                    Add Entry
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Split View Modal -->
+    <div id="split-modal" class="hidden fixed inset-0 bg-white z-50">
+        <div class="h-full flex flex-col">
+            <div class="gradient-bg text-white p-4 flex items-center justify-between">
+                <h2 class="text-lg font-bold">Split View Editor</h2>
+                <button id="close-split" class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="flex-1 flex">
+                <div class="flex-1 p-4 border-r border-gray-200">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Title 1 Content</label>
+                    <textarea id="split-title1" class="w-full h-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 resize-none" style="focus:border-color: #188896;"></textarea>
+                </div>
+                <div class="flex-1 p-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Title 2 Content</label>
+                    <textarea id="split-title2" class="w-full h-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 resize-none" style="focus:border-color: #188896;"></textarea>
+                </div>
+            </div>
+            <div class="p-4 bg-gray-50 space-y-3">
+                <div id="split-edit-actions" class="hidden space-y-3">
+                    <button id="split-update" class="w-full bg-warning text-white p-3 rounded-2xl font-semibold">
+                        Update Entry
+                    </button>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="split-cancel" class="bg-gray-500 text-white p-3 rounded-2xl font-semibold">
+                            Cancel
+                        </button>
+                        <button id="split-save" class="bg-primary text-white p-3 rounded-2xl font-semibold">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+                <button id="split-add" class="w-full bg-primary text-white p-3 rounded-2xl font-semibold">
+                    Add Entry
+                </button>
             </div>
         </div>
     </div>
@@ -253,6 +424,7 @@
         let allData = [];
         let currentEditingId = null;
         let selectedMonthData = {};
+        let currentInputMode = 'normal'; // normal, fullscreen, split
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
@@ -283,17 +455,7 @@
             for (let i = 1; i <= 30; i++) {
                 const option = document.createElement('option');
                 option.value = i;
-                
-                // Add status indicator if month is selected
-                if (selectedMonth) {
-                    const hasData = selectedMonthData[i];
-                    const dotClass = hasData ? 'status-available' : 'status-missing';
-                    option.innerHTML = `${i} <span class="status-dot ${dotClass}"></span>`;
-                    option.textContent = `${i} ${hasData ? '●' : '○'}`;  // Fallback for browsers that don't support innerHTML in options
-                } else {
-                    option.textContent = i;
-                }
-                
+                option.textContent = i; // No dots as requested
                 daySelect.appendChild(option);
             }
         }
@@ -322,19 +484,181 @@
             document.getElementById('hijri-month').addEventListener('change', handleMonthChange);
             document.getElementById('hijri-day').addEventListener('change', handleDayChange);
             document.getElementById('submit-btn').addEventListener('click', handleAdd);
-            document.getElementById('update-btn').addEventListener('click', handleUpdate);
-            document.getElementById('delete-btn').addEventListener('click', handleDelete);
+            document.getElementById('update-btn').addEventListener('click', showUpdateConfirm);
+            document.getElementById('delete-btn').addEventListener('click', showDeleteModal);
             document.getElementById('cancel-btn').addEventListener('click', handleCancel);
-            document.getElementById('info-btn').addEventListener('click', showInfo);
+            
+            // Input options modal
+            document.getElementById('input-options-btn').addEventListener('click', showInputOptions);
+            document.getElementById('close-input-options').addEventListener('click', hideInputOptions);
+            document.getElementById('fullscreen-btn').addEventListener('click', showFullscreenModal);
+            document.getElementById('split-view-btn').addEventListener('click', showSplitModal);
+            
+            // Fullscreen modal
+            document.getElementById('close-fullscreen').addEventListener('click', hideFullscreenModal);
+            document.getElementById('fullscreen-add').addEventListener('click', handleFullscreenAdd);
+            document.getElementById('fullscreen-update').addEventListener('click', handleFullscreenUpdate);
+            document.getElementById('fullscreen-cancel').addEventListener('click', handleFullscreenCancel);
+            document.getElementById('fullscreen-save').addEventListener('click', handleFullscreenSave);
+            
+            // Split modal
+            document.getElementById('close-split').addEventListener('click', hideSplitModal);
+            document.getElementById('split-add').addEventListener('click', handleSplitAdd);
+            document.getElementById('split-update').addEventListener('click', handleSplitUpdate);
+            document.getElementById('split-cancel').addEventListener('click', handleSplitCancel);
+            document.getElementById('split-save').addEventListener('click', handleSplitSave);
+            
+            // Update confirm modal
+            document.getElementById('confirm-update').addEventListener('click', handleUpdate);
+            document.getElementById('cancel-update').addEventListener('click', hideUpdateConfirm);
+            
+            // Delete modal events
+            document.getElementById('confirm-delete').addEventListener('click', handleDelete);
+            document.getElementById('cancel-delete').addEventListener('click', hideDeleteModal);
             
             // Calendar modal events
             document.getElementById('calendar-overview-btn').addEventListener('click', showCalendarOverview);
             document.getElementById('close-calendar').addEventListener('click', hideCalendarOverview);
+            
+            // Modal backdrop clicks
             document.getElementById('calendar-modal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    hideCalendarOverview();
-                }
+                if (e.target === this) hideCalendarOverview();
             });
+            document.getElementById('delete-modal').addEventListener('click', function(e) {
+                if (e.target === this) hideDeleteModal();
+            });
+            document.getElementById('update-confirm-modal').addEventListener('click', function(e) {
+                if (e.target === this) hideUpdateConfirm();
+            });
+            document.getElementById('input-modal').addEventListener('click', function(e) {
+                if (e.target === this) hideInputOptions();
+            });
+        }
+
+        function showInputOptions() {
+            document.getElementById('input-modal').classList.remove('hidden');
+        }
+
+        function hideInputOptions() {
+            document.getElementById('input-modal').classList.add('hidden');
+        }
+
+        function showFullscreenModal() {
+            hideInputOptions();
+            syncInputsToFullscreen();
+            document.getElementById('fullscreen-modal').classList.remove('hidden');
+            currentInputMode = 'fullscreen';
+            updateFullscreenButtons();
+        }
+
+        function hideFullscreenModal() {
+            syncInputsFromFullscreen();
+            document.getElementById('fullscreen-modal').classList.add('hidden');
+            currentInputMode = 'normal';
+        }
+
+        function showSplitModal() {
+            hideInputOptions();
+            syncInputsToSplit();
+            document.getElementById('split-modal').classList.remove('hidden');
+            currentInputMode = 'split';
+            updateSplitButtons();
+        }
+
+        function hideSplitModal() {
+            syncInputsFromSplit();
+            document.getElementById('split-modal').classList.add('hidden');
+            currentInputMode = 'normal';
+        }
+
+        function syncInputsToFullscreen() {
+            document.getElementById('fullscreen-title1').value = document.getElementById('title1-content').value;
+            document.getElementById('fullscreen-title2').value = document.getElementById('title2-content').value;
+        }
+
+        function syncInputsFromFullscreen() {
+            document.getElementById('title1-content').value = document.getElementById('fullscreen-title1').value;
+            document.getElementById('title2-content').value = document.getElementById('fullscreen-title2').value;
+        }
+
+        function syncInputsToSplit() {
+            document.getElementById('split-title1').value = document.getElementById('title1-content').value;
+            document.getElementById('split-title2').value = document.getElementById('title2-content').value;
+        }
+
+        function syncInputsFromSplit() {
+            document.getElementById('title1-content').value = document.getElementById('split-title1').value;
+            document.getElementById('title2-content').value = document.getElementById('split-title2').value;
+        }
+
+        function updateFullscreenButtons() {
+            const isEditing = currentEditingId !== null;
+            document.getElementById('fullscreen-add').style.display = isEditing ? 'none' : 'block';
+            document.getElementById('fullscreen-edit-actions').style.display = isEditing ? 'block' : 'none';
+        }
+
+        function updateSplitButtons() {
+            const isEditing = currentEditingId !== null;
+            document.getElementById('split-add').style.display = isEditing ? 'none' : 'block';
+            document.getElementById('split-edit-actions').style.display = isEditing ? 'block' : 'none';
+        }
+
+        function handleFullscreenAdd() {
+            syncInputsFromFullscreen();
+            hideFullscreenModal();
+            handleAdd();
+        }
+
+        function handleFullscreenUpdate() {
+            syncInputsFromFullscreen();
+            hideFullscreenModal();
+            showUpdateConfirm();
+        }
+
+        function handleFullscreenCancel() {
+            hideFullscreenModal();
+            handleCancel();
+        }
+
+        function handleFullscreenSave() {
+            syncInputsFromFullscreen();
+        }
+
+        function handleSplitAdd() {
+            syncInputsFromSplit();
+            hideSplitModal();
+            handleAdd();
+        }
+
+        function handleSplitUpdate() {
+            syncInputsFromSplit();
+            hideSplitModal();
+            showUpdateConfirm();
+        }
+
+        function handleSplitCancel() {
+            hideSplitModal();
+            handleCancel();
+        }
+
+        function handleSplitSave() {
+            syncInputsFromSplit();
+        }
+
+        function showUpdateConfirm() {
+            document.getElementById('update-confirm-modal').classList.remove('hidden');
+        }
+
+        function hideUpdateConfirm() {
+            document.getElementById('update-confirm-modal').classList.add('hidden');
+        }
+
+        function showDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('hidden');
+        }
+
+        function hideDeleteModal() {
+            document.getElementById('delete-modal').classList.add('hidden');
         }
 
         function handleMonthChange() {
@@ -355,8 +679,6 @@
                 resetForm();
             }
             
-            // Reset status and form when month changes
-            hideDataStatus();
             document.getElementById('hijri-day').value = '';
             updateStatistics();
         }
@@ -371,16 +693,13 @@
                 if (existingData) {
                     // Load existing data into form
                     loadDataIntoForm(existingData);
-                    showDataStatus(true, `Data exists for ${selectedMonth} ${selectedDay}`);
                     showEditMode();
                 } else {
                     // Clear form for new entry
                     clearFormData();
-                    showDataStatus(false, `No data for ${selectedMonth} ${selectedDay}. Ready to add new entry.`);
                     showAddMode();
                 }
             } else {
-                hideDataStatus();
                 resetForm();
             }
         }
@@ -395,21 +714,6 @@
             document.getElementById('title1-content').value = '';
             document.getElementById('title2-content').value = '';
             currentEditingId = null;
-        }
-
-        function showDataStatus(exists, message) {
-            const statusDiv = document.getElementById('data-status');
-            const statusText = document.getElementById('status-text');
-            
-            statusDiv.className = `p-4 rounded-2xl text-center font-medium text-sm ${
-                exists ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-            }`;
-            statusText.textContent = message;
-            statusDiv.classList.remove('hidden');
-        }
-
-        function hideDataStatus() {
-            document.getElementById('data-status').classList.add('hidden');
         }
 
         function showAddMode() {
@@ -442,7 +746,7 @@
                 const monthHeader = document.createElement('div');
                 monthHeader.className = 'flex items-center space-x-2 pb-2';
                 monthHeader.innerHTML = `
-                    <i class="fas fa-moon text-primary"></i>
+                    <i class="fas fa-moon" style="color: #188896;"></i>
                     <h3 class="font-bold text-gray-800">${monthIndex + 1}. ${month}</h3>
                 `;
 
@@ -477,7 +781,7 @@
             // Set the form values
             document.getElementById('hijri-month').value = month;
             
-            // Trigger month change to populate day dropdown with status indicators
+            // Trigger month change to populate day dropdown
             handleMonthChange();
             
             // Set the day
@@ -486,14 +790,20 @@
             // Trigger day change to load data if exists
             handleDayChange();
             
-            // Show toast notification
-            showToast(`Selected ${month} ${day}`, 'info');
-            
             // Scroll to top of form smoothly
             document.querySelector('.gradient-bg').scrollIntoView({ 
                 behavior: 'smooth',
                 block: 'start'
             });
+        }
+
+        function showSuccessAnimation() {
+            const animation = document.getElementById('success-animation');
+            animation.classList.remove('hidden');
+            
+            setTimeout(() => {
+                animation.classList.add('hidden');
+            }, 1000);
         }
 
         async function handleAdd() {
@@ -508,7 +818,7 @@
                 
                 if (error) throw error;
                 
-                showToast('Entry added successfully!', 'success');
+                showSuccessAnimation();
                 await loadAllData();
                 updateStatistics();
                 handleDayChange(); // Refresh the form state
@@ -525,6 +835,7 @@
             const formData = getFormData();
             if (!validateForm(formData) || !currentEditingId) return;
 
+            hideUpdateConfirm();
             showLoading(true);
             try {
                 const { error } = await supabase
@@ -534,7 +845,7 @@
                 
                 if (error) throw error;
                 
-                showToast('Entry updated successfully!', 'success');
+                showSuccessAnimation();
                 await loadAllData();
                 updateStatistics();
                 handleDayChange(); // Refresh the form state
@@ -549,10 +860,10 @@
 
         async function handleDelete() {
             if (!currentEditingId) return;
-            
-            if (!confirm('Are you sure you want to delete this entry?')) return;
 
+            hideDeleteModal();
             showLoading(true);
+            
             try {
                 const { error } = await supabase
                     .from('poster_data')
@@ -582,9 +893,8 @@
             document.getElementById('hijri-month').value = '';
             document.getElementById('hijri-day').value = '';
             clearFormData();
-            hideDataStatus();
             showAddMode();
-            populateDayDropdown(); // Reset day dropdown without status indicators
+            populateDayDropdown(); // Reset day dropdown
             updateStatistics();
         }
 
@@ -635,10 +945,11 @@
                 success: 'bg-green-500',
                 error: 'bg-red-500',
                 warning: 'bg-yellow-500',
-                info: 'bg-blue-500'
+                info: '#188896'
             }[type];
             
-            toast.className = `${bgColor} text-white px-6 py-3 rounded-2xl shadow-lg transform transition-all duration-300 opacity-0 translate-x-full max-w-sm`;
+            toast.className = `text-white px-6 py-3 rounded-2xl shadow-lg transform transition-all duration-300 opacity-0 translate-x-full max-w-sm`;
+            toast.style.backgroundColor = bgColor;
             toast.innerHTML = `
                 <div class="flex items-center space-x-2">
                     <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info'}-circle"></i>
@@ -658,10 +969,6 @@
                 toast.classList.add('opacity-0', 'translate-x-full');
                 setTimeout(() => toast.remove(), 300);
             }, 3000);
-        }
-
-        function showInfo() {
-            alert(`Poster Data Manager\n\n• Green dot (●) = Data exists\n• Red dot (○) = No data\n• Select month and day to view/edit data\n• Click calendar icon to view overview\n• Total entries: ${allData.length}`);
         }
     </script>
 </body>
