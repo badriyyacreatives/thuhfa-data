@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poster Data Manager</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        danger: '#EF4444',
+                        warning: '#F59E0B',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 8px;
+        }
+        .status-available {
+            background-color: #10B981;
+        }
+        .status-missing {
+            background-color: #EF4444;
+        }
+        .mobile-app-shadow {
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+        .calendar-day {
+            transition: all 0.2s ease;
+        }
+        .calendar-day:hover {
+            transform: scale(1.05);
+        }
+        .has-data {
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white;
+        }
+        .no-data {
+            background: #F3F4F6;
+            color: #6B7280;
+            border: 1px solid #E5E7EB;
+        }
+        .no-data:hover {
+            background: #E5E7EB;
+        }
+        .calendar-container {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .modal-overlay {
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Mobile App Container -->
+    <div class="max-w-md mx-auto bg-white min-h-screen mobile-app-shadow">
+        <!-- Header -->
+        <div class="gradient-bg text-white p-6 rounded-b-3xl">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-calendar-alt text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold">Poster Manager</h1>
+                        <p class="text-white/80 text-sm">Hijri Calendar Data</p>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="calendar-overview-btn" class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
+                        <i class="fas fa-calendar text-sm"></i>
+                    </button>
+                    <button id="info-btn" class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
+                        <i class="fas fa-info text-sm"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Status Cards -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center">
+                    <div class="text-2xl font-bold" id="total-entries">0</div>
+                    <div class="text-white/80 text-sm">Total Entries</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center">
+                    <div class="text-2xl font-bold" id="current-month-entries">0</div>
+                    <div class="text-white/80 text-sm">This Month</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Section -->
+        <div class="p-6 space-y-6">
+            <!-- Month Selection -->
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-moon mr-2 text-primary"></i>
+                    Hijri Month
+                </label>
+                <div class="relative">
+                    <select id="hijri-month" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 font-medium focus:border-primary focus:outline-none transition-colors appearance-none">
+                        <option value="">Select Month</option>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                </div>
+            </div>
+
+            <!-- Day Selection -->
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-calendar-day mr-2 text-primary"></i>
+                    Hijri Day
+                </label>
+                <div class="relative">
+                    <select id="hijri-day" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 font-medium focus:border-primary focus:outline-none transition-colors appearance-none">
+                        <option value="">Select Day</option>
+                    </select>
+                    <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                </div>
+            </div>
+
+            <!-- Data Status Indicator -->
+            <div id="data-status" class="hidden p-4 rounded-2xl text-center font-medium text-sm">
+                <i class="fas fa-info-circle mr-2"></i>
+                <span id="status-text"></span>
+            </div>
+
+            <!-- Title 1 Input -->
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-heading mr-2 text-primary"></i>
+                    Title 1 Content
+                </label>
+                <textarea id="title1-content" rows="4" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 resize-none focus:border-primary focus:outline-none transition-colors" placeholder="Enter title 1 content..."></textarea>
+            </div>
+
+            <!-- Title 2 Input -->
+            <div class="space-y-2">
+                <label class="block text-sm font-semibold text-gray-700 flex items-center">
+                    <i class="fas fa-heading mr-2 text-primary"></i>
+                    Title 2 Content
+                </label>
+                <textarea id="title2-content" rows="4" class="w-full p-4 bg-white border-2 border-gray-200 rounded-2xl text-gray-800 resize-none focus:border-primary focus:outline-none transition-colors" placeholder="Enter title 2 content..."></textarea>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-3 pt-4">
+                <button id="submit-btn" type="button" class="w-full bg-primary text-white p-4 rounded-2xl font-semibold text-lg flex items-center justify-center space-x-2 shadow-lg hover:bg-blue-600 transition-colors">
+                    <i class="fas fa-plus"></i>
+                    <span>Add Entry</span>
+                </button>
+                
+                <div id="edit-actions" class="hidden space-y-3">
+                    <button id="update-btn" type="button" class="w-full bg-warning text-white p-4 rounded-2xl font-semibold text-lg flex items-center justify-center space-x-2 shadow-lg hover:bg-yellow-600 transition-colors">
+                        <i class="fas fa-edit"></i>
+                        <span>Update Entry</span>
+                    </button>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="delete-btn" type="button" class="bg-danger text-white p-3 rounded-2xl font-semibold flex items-center justify-center space-x-2 shadow-lg hover:bg-red-600 transition-colors">
+                            <i class="fas fa-trash"></i>
+                            <span>Delete</span>
+                        </button>
+                        <button id="cancel-btn" type="button" class="bg-gray-500 text-white p-3 rounded-2xl font-semibold flex items-center justify-center space-x-2 shadow-lg hover:bg-gray-600 transition-colors">
+                            <i class="fas fa-times"></i>
+                            <span>Cancel</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-3xl shadow-xl flex items-center space-x-4">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span class="text-gray-700 font-medium">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Overview Modal -->
+    <div id="calendar-modal" class="hidden fixed inset-0 bg-black/50 modal-overlay flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="gradient-bg text-white p-6 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-calendar-alt text-xl"></i>
+                    <h2 class="text-xl font-bold">Calendar Overview</h2>
+                </div>
+                <button id="close-calendar" class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Legend -->
+            <div class="p-4 bg-gray-50 border-b">
+                <div class="flex items-center justify-center space-x-6 text-sm">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-4 h-4 bg-gradient-to-br from-green-500 to-green-600 rounded"></div>
+                        <span class="text-gray-700">Has Data</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-4 h-4 bg-gray-300 border rounded"></div>
+                        <span class="text-gray-700">No Data</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div id="calendar-grid" class="calendar-container p-4 space-y-6">
+                <!-- Calendar content will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://jnuyzhmeebaeeckkaobb.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpudXl6aG1lZWJhZWVja2thb2JiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzNjkzNDUsImV4cCI6MjA2ODk0NTM0NX0.0dDorsXVM64DLrToS_NBEb6UaPO6AXNZvgXLdoacaa0';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Hijri months in Malayalam
+        const hijriMonths = [
+            "മുഹറം", "സഫർ", "റബീഉല്‍ അവ്വല്‍", "റബീഉല്‍ ആഖര്‍", 
+            "ജുമാദുല്‍ അവ്വല്‍", "ജുമാദുല്‍ ആഖര്‍", "റജബ്", "ശഅ്ബാന്‍", 
+            "റമളാന്‍", "ശവ്വാല്‍", "ദുല്‍ ഖഅ്ദ്", "ദുല്‍ ഹജ്‌ജ"
+        ];
+
+        let allData = [];
+        let currentEditingId = null;
+        let selectedMonthData = {};
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            populateMonthDropdown();
+            await loadAllData();
+            setupEventListeners();
+            updateStatistics();
+        }
+
+        function populateMonthDropdown() {
+            const monthSelect = document.getElementById('hijri-month');
+            hijriMonths.forEach((month, index) => {
+                const option = document.createElement('option');
+                option.value = month;
+                option.textContent = `${index + 1}. ${month}`;
+                monthSelect.appendChild(option);
+            });
+        }
+
+        function populateDayDropdown(selectedMonth = null) {
+            const daySelect = document.getElementById('hijri-day');
+            daySelect.innerHTML = '<option value="">Select Day</option>';
+            
+            for (let i = 1; i <= 30; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                
+                // Add status indicator if month is selected
+                if (selectedMonth) {
+                    const hasData = selectedMonthData[i];
+                    const dotClass = hasData ? 'status-available' : 'status-missing';
+                    option.innerHTML = `${i} <span class="status-dot ${dotClass}"></span>`;
+                    option.textContent = `${i} ${hasData ? '●' : '○'}`;  // Fallback for browsers that don't support innerHTML in options
+                } else {
+                    option.textContent = i;
+                }
+                
+                daySelect.appendChild(option);
+            }
+        }
+
+        async function loadAllData() {
+            showLoading(true);
+            try {
+                const { data, error } = await supabase
+                    .from('poster_data')
+                    .select('*')
+                    .order('hijri_month', { ascending: true })
+                    .order('hijri_day', { ascending: true });
+
+                if (error) throw error;
+                allData = data || [];
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showToast('Error loading data: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('hijri-month').addEventListener('change', handleMonthChange);
+            document.getElementById('hijri-day').addEventListener('change', handleDayChange);
+            document.getElementById('submit-btn').addEventListener('click', handleAdd);
+            document.getElementById('update-btn').addEventListener('click', handleUpdate);
+            document.getElementById('delete-btn').addEventListener('click', handleDelete);
+            document.getElementById('cancel-btn').addEventListener('click', handleCancel);
+            document.getElementById('info-btn').addEventListener('click', showInfo);
+            
+            // Calendar modal events
+            document.getElementById('calendar-overview-btn').addEventListener('click', showCalendarOverview);
+            document.getElementById('close-calendar').addEventListener('click', hideCalendarOverview);
+            document.getElementById('calendar-modal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    hideCalendarOverview();
+                }
+            });
+        }
+
+        function handleMonthChange() {
+            const selectedMonth = document.getElementById('hijri-month').value;
+            
+            if (selectedMonth) {
+                // Build month data for status indicators
+                selectedMonthData = {};
+                allData.forEach(item => {
+                    if (item.hijri_month === selectedMonth) {
+                        selectedMonthData[item.hijri_day] = item;
+                    }
+                });
+                
+                populateDayDropdown(selectedMonth);
+            } else {
+                populateDayDropdown();
+                resetForm();
+            }
+            
+            // Reset status and form when month changes
+            hideDataStatus();
+            document.getElementById('hijri-day').value = '';
+            updateStatistics();
+        }
+
+        function handleDayChange() {
+            const selectedMonth = document.getElementById('hijri-month').value;
+            const selectedDay = parseInt(document.getElementById('hijri-day').value);
+            
+            if (selectedMonth && selectedDay) {
+                const existingData = selectedMonthData[selectedDay];
+                
+                if (existingData) {
+                    // Load existing data into form
+                    loadDataIntoForm(existingData);
+                    showDataStatus(true, `Data exists for ${selectedMonth} ${selectedDay}`);
+                    showEditMode();
+                } else {
+                    // Clear form for new entry
+                    clearFormData();
+                    showDataStatus(false, `No data for ${selectedMonth} ${selectedDay}. Ready to add new entry.`);
+                    showAddMode();
+                }
+            } else {
+                hideDataStatus();
+                resetForm();
+            }
+        }
+
+        function loadDataIntoForm(data) {
+            document.getElementById('title1-content').value = data.title1_content || '';
+            document.getElementById('title2-content').value = data.title2_content || '';
+            currentEditingId = data.id;
+        }
+
+        function clearFormData() {
+            document.getElementById('title1-content').value = '';
+            document.getElementById('title2-content').value = '';
+            currentEditingId = null;
+        }
+
+        function showDataStatus(exists, message) {
+            const statusDiv = document.getElementById('data-status');
+            const statusText = document.getElementById('status-text');
+            
+            statusDiv.className = `p-4 rounded-2xl text-center font-medium text-sm ${
+                exists ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+            }`;
+            statusText.textContent = message;
+            statusDiv.classList.remove('hidden');
+        }
+
+        function hideDataStatus() {
+            document.getElementById('data-status').classList.add('hidden');
+        }
+
+        function showAddMode() {
+            document.getElementById('submit-btn').classList.remove('hidden');
+            document.getElementById('edit-actions').classList.add('hidden');
+        }
+
+        function showEditMode() {
+            document.getElementById('submit-btn').classList.add('hidden');
+            document.getElementById('edit-actions').classList.remove('hidden');
+        }
+
+        function showCalendarOverview() {
+            generateCalendarGrid();
+            document.getElementById('calendar-modal').classList.remove('hidden');
+        }
+
+        function hideCalendarOverview() {
+            document.getElementById('calendar-modal').classList.add('hidden');
+        }
+
+        function generateCalendarGrid() {
+            const calendarGrid = document.getElementById('calendar-grid');
+            calendarGrid.innerHTML = '';
+
+            hijriMonths.forEach((month, monthIndex) => {
+                const monthSection = document.createElement('div');
+                monthSection.className = 'space-y-3';
+
+                const monthHeader = document.createElement('div');
+                monthHeader.className = 'flex items-center space-x-2 pb-2';
+                monthHeader.innerHTML = `
+                    <i class="fas fa-moon text-primary"></i>
+                    <h3 class="font-bold text-gray-800">${monthIndex + 1}. ${month}</h3>
+                `;
+
+                const monthGrid = document.createElement('div');
+                monthGrid.className = 'grid grid-cols-6 gap-2';
+
+                for (let day = 1; day <= 30; day++) {
+                    const hasData = allData.some(item => 
+                        item.hijri_month === month && item.hijri_day === day
+                    );
+
+                    const dayButton = document.createElement('button');
+                    dayButton.className = `calendar-day w-10 h-10 rounded-xl font-semibold text-sm flex items-center justify-center cursor-pointer ${
+                        hasData ? 'has-data shadow-md' : 'no-data hover:shadow-md'
+                    }`;
+                    dayButton.textContent = day;
+                    dayButton.onclick = () => selectCalendarDate(month, day);
+
+                    monthGrid.appendChild(dayButton);
+                }
+
+                monthSection.appendChild(monthHeader);
+                monthSection.appendChild(monthGrid);
+                calendarGrid.appendChild(monthSection);
+            });
+        }
+
+        function selectCalendarDate(month, day) {
+            // Close calendar modal
+            hideCalendarOverview();
+            
+            // Set the form values
+            document.getElementById('hijri-month').value = month;
+            
+            // Trigger month change to populate day dropdown with status indicators
+            handleMonthChange();
+            
+            // Set the day
+            document.getElementById('hijri-day').value = day;
+            
+            // Trigger day change to load data if exists
+            handleDayChange();
+            
+            // Show toast notification
+            showToast(`Selected ${month} ${day}`, 'info');
+            
+            // Scroll to top of form smoothly
+            document.querySelector('.gradient-bg').scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        async function handleAdd() {
+            const formData = getFormData();
+            if (!validateForm(formData)) return;
+
+            showLoading(true);
+            try {
+                const { error } = await supabase
+                    .from('poster_data')
+                    .insert([formData]);
+                
+                if (error) throw error;
+                
+                showToast('Entry added successfully!', 'success');
+                await loadAllData();
+                updateStatistics();
+                handleDayChange(); // Refresh the form state
+                
+            } catch (error) {
+                console.error('Error adding data:', error);
+                showToast('Error adding data: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function handleUpdate() {
+            const formData = getFormData();
+            if (!validateForm(formData) || !currentEditingId) return;
+
+            showLoading(true);
+            try {
+                const { error } = await supabase
+                    .from('poster_data')
+                    .update(formData)
+                    .eq('id', currentEditingId);
+                
+                if (error) throw error;
+                
+                showToast('Entry updated successfully!', 'success');
+                await loadAllData();
+                updateStatistics();
+                handleDayChange(); // Refresh the form state
+                
+            } catch (error) {
+                console.error('Error updating data:', error);
+                showToast('Error updating data: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function handleDelete() {
+            if (!currentEditingId) return;
+            
+            if (!confirm('Are you sure you want to delete this entry?')) return;
+
+            showLoading(true);
+            try {
+                const { error } = await supabase
+                    .from('poster_data')
+                    .delete()
+                    .eq('id', currentEditingId);
+                
+                if (error) throw error;
+                
+                showToast('Entry deleted successfully!', 'success');
+                await loadAllData();
+                updateStatistics();
+                resetForm();
+                
+            } catch (error) {
+                console.error('Error deleting data:', error);
+                showToast('Error deleting data: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function handleCancel() {
+            resetForm();
+        }
+
+        function resetForm() {
+            document.getElementById('hijri-month').value = '';
+            document.getElementById('hijri-day').value = '';
+            clearFormData();
+            hideDataStatus();
+            showAddMode();
+            populateDayDropdown(); // Reset day dropdown without status indicators
+            updateStatistics();
+        }
+
+        function getFormData() {
+            return {
+                hijri_month: document.getElementById('hijri-month').value,
+                hijri_day: parseInt(document.getElementById('hijri-day').value),
+                title1_content: document.getElementById('title1-content').value.trim(),
+                title2_content: document.getElementById('title2-content').value.trim()
+            };
+        }
+
+        function validateForm(data) {
+            if (!data.hijri_month) {
+                showToast('Please select a Hijri month', 'warning');
+                return false;
+            }
+            if (!data.hijri_day) {
+                showToast('Please select a Hijri day', 'warning');
+                return false;
+            }
+            return true;
+        }
+
+        function updateStatistics() {
+            const totalEntries = allData.length;
+            const selectedMonth = document.getElementById('hijri-month').value;
+            const currentMonthEntries = selectedMonth 
+                ? allData.filter(item => item.hijri_month === selectedMonth).length 
+                : 0;
+            
+            document.getElementById('total-entries').textContent = totalEntries;
+            document.getElementById('current-month-entries').textContent = currentMonthEntries;
+        }
+
+        function showLoading(show) {
+            const overlay = document.getElementById('loading-overlay');
+            if (show) {
+                overlay.classList.remove('hidden');
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            const bgColor = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-blue-500'
+            }[type];
+            
+            toast.className = `${bgColor} text-white px-6 py-3 rounded-2xl shadow-lg transform transition-all duration-300 opacity-0 translate-x-full max-w-sm`;
+            toast.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info'}-circle"></i>
+                    <span class="font-medium">${message}</span>
+                </div>
+            `;
+            
+            document.getElementById('toast-container').appendChild(toast);
+            
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('opacity-0', 'translate-x-full');
+            }, 100);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-x-full');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function showInfo() {
+            alert(`Poster Data Manager\n\n• Green dot (●) = Data exists\n• Red dot (○) = No data\n• Select month and day to view/edit data\n• Click calendar icon to view overview\n• Total entries: ${allData.length}`);
+        }
+    </script>
+</body>
+</html>
