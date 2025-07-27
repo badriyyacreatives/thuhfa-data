@@ -3,7 +3,7 @@
   "short_name": "Thuhfa+",
   "description": "Hijri Calendar Data Management App",
   "theme_color": "#188896",
-  "background_color": "#ffffff",
+  "background_color": "#961829",
   "display": "standalone",
   "orientation": "portrait",
   "scope": "/thuhfa-data/",
